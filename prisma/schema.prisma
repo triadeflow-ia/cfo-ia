@@ -1,0 +1,819 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE - ORGANIZATION & AUTH
+// ============================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organizationUsers OrganizationUser[]
+  roles            Role[]
+  auditLogs        AuditLog[]
+  financialAccounts FinancialAccount[]
+  categories       Category[]
+  costCenters      CostCenter[]
+  clients          Client[]
+  vendors          Vendor[]
+  transactions     Transaction[]
+  categorizationRules CategorizationRule[]
+  recurrences      Recurrence[]
+  notifications    Notification[]
+  budgets          Budget[]
+  contracts        ClientContract[]
+  goals            Goal[]
+  whatsappUserLinks WhatsappUserLink[]
+  conversations    Conversation[]
+  conversationMessages ConversationMessage[]
+  pendingActions   PendingAction[]
+  integrationConnections IntegrationConnection[]
+  bankTransactions BankTransaction[]
+  matchSuggestions MatchSuggestion[]
+  invoices         Invoice[]
+
+  @@map("organizations")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  passwordHash String? // bcrypt hash for credentials auth
+  emailVerified DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  organizationUsers OrganizationUser[]
+  auditLogs         AuditLog[] @relation("CreatedByUser")
+  auditLogsUpdated  AuditLog[] @relation("UpdatedByUser")
+  whatsappUserLinks WhatsappUserLink[]
+  conversations     Conversation[]
+  pendingActions    PendingAction[]
+
+  @@map("users")
+}
+
+model OrganizationUser {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  roleId         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           Role?        @relation(fields: [roleId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@map("organization_users")
+}
+
+model Role {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationUsers  OrganizationUser[]
+  rolePermissions    RolePermission[]
+
+  @@unique([organizationId, slug])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  module      String?  // e.g., "transaction", "report", "settings"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// AUTH (NextAuth)
+// ============================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  action         String   // "create", "update", "delete", "read"
+  entityType     String   // "Transaction", "Account", etc.
+  entityId       String
+  changes        Json?    // { old: {...}, new: {...} }
+  metadata       Json?    // { source: "web" | "whatsapp" | "api", ip: "...", etc. }
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation("CreatedByUser", fields: [createdByUserId], references: [id])
+  createdByUserId String?
+  updatedBy    User?        @relation("UpdatedByUser", fields: [updatedByUserId], references: [id])
+  updatedByUserId String?
+
+  @@index([organizationId, entityType, entityId])
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// FINANCIAL CORE - LEDGER MVP
+// ============================================
+
+enum TransactionType {
+  IN
+  OUT
+}
+
+enum TransactionStatus {
+  PENDING
+  CLEARED
+}
+
+model FinancialAccount {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  type      String   // "BANK" | "CREDIT_CARD" | "CASH" (string no MVP)
+  currency  String   @default("BRL")
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+  recurrences  Recurrence[]
+  categorizationRules CategorizationRule[]
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@unique([orgId, name])
+  @@map("financial_accounts")
+}
+
+model Category {
+  id           String   @id @default(cuid())
+  orgId        String
+  name         String
+  kind         String   @default("EXPENSE") // "EXPENSE" | "INCOME" | "BOTH"
+  dreGroup     DreGroup @default(OTHER)
+  isDirectCost Boolean  @default(false) // Para custos diretos (mídia paga, etc)
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+  categorizationRules CategorizationRule[]
+  budgets      Budget[]
+  recurrences  Recurrence[]
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orgId, dreGroup])
+  @@index([orgId, isDirectCost])
+  @@unique([orgId, name])
+  @@map("categories")
+}
+
+model CostCenter {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+  categorizationRules CategorizationRule[]
+  recurrences  Recurrence[]
+  budgets      Budget[]
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@unique([orgId, name])
+  @@map("cost_centers")
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  status    String   @default("ACTIVE") // ACTIVE | PAUSED | CHURNED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions    Transaction[]
+  categorizationRules CategorizationRule[]
+  contracts       ClientContract[]
+  recurrences     Recurrence[]
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orgId, status])
+  @@unique([orgId, name])
+  @@map("clients")
+}
+
+model Vendor {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+  categorizationRules CategorizationRule[]
+  recurrences  Recurrence[]
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@unique([orgId, name])
+  @@map("vendors")
+}
+
+model Transaction {
+  id            String            @id @default(cuid())
+  orgId         String
+
+  type          TransactionType
+  status        TransactionStatus @default(CLEARED)
+
+  date          DateTime          // data do evento (caixa)
+  competence    DateTime?         // competência (opcional no MVP)
+  amountCents   Int               // sempre em centavos para evitar float
+  description   String
+
+  accountId     String
+  account       FinancialAccount  @relation(fields: [accountId], references: [id])
+
+  categoryId    String?
+  category      Category?         @relation(fields: [categoryId], references: [id])
+
+  costCenterId  String?
+  costCenter    CostCenter?       @relation(fields: [costCenterId], references: [id])
+
+  clientId      String?
+  client        Client?           @relation(fields: [clientId], references: [id])
+
+  vendorId      String?
+  vendor        Vendor?           @relation(fields: [vendorId], references: [id])
+
+  externalId    String?           // para importações futuras
+  importHash    String?           // deduplicação CSV
+  source        String            @default("manual") // manual|csv|bank|whatsapp|integration|recurrence
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, date])
+  @@index([orgId, accountId])
+  @@index([orgId, categoryId])
+  @@index([orgId, costCenterId])
+  @@index([orgId, clientId])
+  @@index([orgId, vendorId])
+  recurrenceId  String?
+  recurrence   Recurrence?       @relation(fields: [recurrenceId], references: [id])
+
+  @@index([orgId, importHash])
+  @@index([orgId, recurrenceId, date])
+  bankTransactionMatches BankTransaction[] @relation("BankTransactionMatches")
+  matchSuggestions       MatchSuggestion[]
+  @@map("transactions")
+}
+
+// ============================================
+// REPORTS - MARCO 3
+// ============================================
+
+enum DreGroup {
+  REVENUE
+  COGS
+  OPEX
+  PAYROLL
+  TAXES
+  TOOLS
+  OTHER
+}
+
+// ============================================
+// AUTOMATION - MARCO 2
+// ============================================
+
+enum RuleMatchType {
+  CONTAINS
+  REGEX
+  STARTS_WITH
+  ENDS_WITH
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum NotificationType {
+  RECURRENCE_DUE
+  ANOMALY_SPEND
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model CategorizationRule {
+  id          String        @id @default(cuid())
+  orgId       String
+  name        String
+  isActive    Boolean       @default(true)
+  priority    Int           @default(100) // menor = mais prioritária
+
+  matchType   RuleMatchType
+  pattern     String
+
+  // Condições opcionais
+  vendorId    String?
+  accountId   String?
+  appliesTo   TransactionType?
+
+  // Ações (o que preencher)
+  categoryId   String?
+  costCenterId String?
+  clientId     String?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  vendor       Vendor?      @relation(fields: [vendorId], references: [id])
+  account      FinancialAccount? @relation(fields: [accountId], references: [id])
+  category     Category?    @relation(fields: [categoryId], references: [id])
+  costCenter   CostCenter?  @relation(fields: [costCenterId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+
+  @@index([orgId, isActive, priority])
+  @@index([orgId, vendorId])
+  @@index([orgId, accountId])
+  @@map("categorization_rules")
+}
+
+model Recurrence {
+  id          String              @id @default(cuid())
+  orgId       String
+  name        String
+  isActive    Boolean             @default(true)
+
+  frequency   RecurrenceFrequency
+  interval    Int                 @default(1)
+
+  // Regras por frequência (MVP)
+  dayOfWeek   Int?                // 0-6 (se WEEKLY)
+  dayOfMonth  Int?                // 1-28/31 (se MONTHLY)
+  nextRunAt   DateTime
+  lastRunAt   DateTime?
+
+  // Template da transação
+  type        TransactionType
+  amountCents Int
+  description String
+
+  accountId   String
+  account     FinancialAccount    @relation(fields: [accountId], references: [id])
+  categoryId  String?
+  category    Category?           @relation(fields: [categoryId], references: [id])
+  costCenterId String?
+  costCenter  CostCenter?         @relation(fields: [costCenterId], references: [id])
+  clientId    String?
+  client      Client?             @relation(fields: [clientId], references: [id])
+  vendorId    String?
+  vendor      Vendor?             @relation(fields: [vendorId], references: [id])
+
+  transactions Transaction[]
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([orgId, isActive, nextRunAt])
+  @@map("recurrences")
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  orgId     String
+  type      NotificationType
+  severity  NotificationSeverity @default(INFO)
+
+  title     String
+  body      String
+  metadata  Json?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime             @default(now())
+  readAt    DateTime?
+
+  @@index([orgId, createdAt])
+  @@index([orgId, readAt])
+  @@map("notifications")
+}
+
+// ============================================
+// REPORTS - MARCO 3
+// ============================================
+
+model Budget {
+  id           String   @id @default(cuid())
+  orgId        String
+  year         Int
+  month        Int      // 1-12
+  categoryId   String
+  costCenterId String?
+  amountCents  Int      // sempre em centavos
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  category     Category     @relation(fields: [categoryId], references: [id])
+  costCenter   CostCenter?  @relation(fields: [costCenterId], references: [id])
+
+  @@unique([orgId, year, month, categoryId, costCenterId])
+  @@index([orgId, year, month])
+  @@map("budgets")
+}
+
+// ============================================
+// GROWTH - MARCO 4
+// ============================================
+
+enum ContractStatus {
+  ACTIVE
+  PAUSED
+  CANCELED
+}
+
+enum GoalMetric {
+  MRR
+  ARR
+  ACTIVE_CLIENTS
+  NET_PROFIT
+  GROSS_MARGIN
+}
+
+enum GoalPeriod {
+  MONTH
+  YEAR
+}
+
+model ClientContract {
+  id         String         @id @default(cuid())
+  orgId      String
+  clientId   String
+  status     ContractStatus @default(ACTIVE)
+  
+  startAt    DateTime
+  endAt      DateTime?
+  
+  mrrCents   Int            // MRR em centavos
+  currency   String         @default("BRL")
+  billingDay Int?           // 1-28 (dia da cobrança mensal)
+  
+  source     String         @default("manual") // manual | crm | imported
+  tags       Json?          // Tags opcionais
+  
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, status])
+  @@index([orgId, clientId])
+  @@index([orgId, status, startAt])
+  @@map("client_contracts")
+}
+
+model Goal {
+  id        String      @id @default(cuid())
+  orgId     String
+  metric    GoalMetric
+  period    GoalPeriod
+  periodValue String    // "2024-01" para MONTH, "2024" para YEAR
+  valueCents Int?       // Para métricas monetárias
+  valueInt   Int?       // Para métricas não-monetárias (ex: ACTIVE_CLIENTS)
+  
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, metric, period, periodValue])
+  @@unique([orgId, metric, period, periodValue])
+  @@map("goals")
+}
+
+// ============================================
+// WHATSAPP - MARCO 5
+// ============================================
+
+enum ConversationChannel {
+  WHATSAPP
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+enum MessageDirection {
+  IN
+  OUT
+}
+
+model WhatsappUserLink {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  phoneE164 String   // formato E.164 (ex: +5511999999999)
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, phoneE164])
+  @@index([orgId, phoneE164])
+  @@index([orgId, userId])
+  @@map("whatsapp_user_links")
+}
+
+model Conversation {
+  id            String              @id @default(cuid())
+  orgId         String
+  userId        String
+  channel       ConversationChannel @default(WHATSAPP)
+  status        ConversationStatus  @default(OPEN)
+  lastMessageAt DateTime            @default(now())
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  organization  Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      ConversationMessage[]
+  pendingActions PendingAction[]
+
+  @@index([orgId, userId])
+  @@index([orgId, status, lastMessageAt])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id             String           @id @default(cuid())
+  orgId          String
+  conversationId String
+  direction      MessageDirection
+  messageId      String           // WhatsApp message ID (idempotência)
+  text           String?          // Texto processado
+  rawPayload     Json?            // Payload original do webhook
+  
+  createdAt      DateTime         @default(now())
+
+  organization   Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, messageId])
+  @@index([orgId, conversationId, createdAt])
+  @@index([orgId, messageId])
+  @@map("conversation_messages")
+}
+
+model PendingAction {
+  id             String   @id @default(cuid())
+  orgId          String
+  userId         String
+  conversationId String
+  toolName       String
+  toolInput      Json
+  expiresAt      DateTime
+  
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, userId, conversationId])
+  @@index([orgId, expiresAt])
+  @@map("pending_actions")
+}
+
+// ============================================
+// INTEGRATIONS - MARCO 6
+// ============================================
+
+enum IntegrationType {
+  BANK
+  NF
+  ACCOUNTING
+  CRM
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum MatchStatus {
+  UNMATCHED
+  SUGGESTED
+  MATCHED
+}
+
+model IntegrationConnection {
+  id          String            @id @default(cuid())
+  orgId       String
+  type        IntegrationType
+  provider    String            // "belvo", "plaid", "nordigen", "kommo", "ghl", etc.
+  status      IntegrationStatus @default(DISCONNECTED)
+  authJson    String?           // encrypted credentials
+  settingsJson Json?
+  lastSyncAt  DateTime?
+  lastError   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  bankTransactions BankTransaction[]
+  invoices        Invoice[]
+
+  @@index([orgId, type, provider])
+  @@index([orgId, status])
+  @@map("integration_connections")
+}
+
+model BankTransaction {
+  id                String    @id @default(cuid())
+  orgId             String
+  connectionId      String
+  externalId        String    // unique per connection
+  postedAt          DateTime
+  amountCents       Int
+  description       String
+  currency          String    @default("BRL")
+  raw               Json?     // payload original
+  matchedTransactionId String? // Transaction.id se matchado
+  matchStatus       MatchStatus @default(UNMATCHED)
+  createdAt         DateTime  @default(now())
+
+  organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  connection        IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  matchedTransaction Transaction? @relation("BankTransactionMatches", fields: [matchedTransactionId], references: [id])
+  matchSuggestions  MatchSuggestion[]
+
+  @@unique([connectionId, externalId])
+  @@index([orgId, postedAt])
+  @@index([orgId, matchStatus])
+  @@index([orgId, connectionId])
+  @@map("bank_transactions")
+}
+
+model MatchSuggestion {
+  id              String   @id @default(cuid())
+  orgId           String
+  bankTransactionId String
+  transactionId   String
+  score           Int      // 0-100
+  reason          Json?    // explicação do match
+  createdAt       DateTime @default(now())
+
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  bankTransaction BankTransaction @relation(fields: [bankTransactionId], references: [id], onDelete: Cascade)
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@unique([bankTransactionId, transactionId])
+  @@index([orgId, score])
+  @@map("match_suggestions")
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  orgId       String
+  connectionId String? // pode ser null se entrada manual
+  externalId  String   // unique per connection (quando connectionId não é null)
+  issuedAt    DateTime
+  totalCents  Int
+  customerName String
+  customerDoc String?  // CPF/CNPJ
+  raw         Json?    // payload original (NFe/NFSe)
+  createdAt   DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, connectionId, externalId])
+  @@index([orgId, issuedAt])
+  @@index([orgId, customerDoc])
+  @@index([orgId, connectionId])
+  @@map("invoices")
+}
+
