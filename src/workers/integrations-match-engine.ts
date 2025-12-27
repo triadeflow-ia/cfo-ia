@@ -1,83 +1,31 @@
 /**
- * Worker para match engine (reconciliação de transações bancárias)
- * Roda a cada 10 minutos (cron: */10 * * * *)
+ * Worker para match engine (reconciliação de transações)
+ * Roda após cada sync de banco
  */
 
-import { prisma } from '@/shared/db'
 import { generateMatchSuggestions } from '@/modules/integrations/application/match-engine.service'
 import { logger } from '@/shared/logger'
+import { prisma } from '@/shared/db'
 
 /**
- * Executa match engine para todas as organizações com transações não matchadas
+ * Processa match engine para todas as organizações
  */
-export async function processMatchEngine() {
-  logger.info('Starting match engine worker')
-
-  // Buscar organizações com BankTransactions não matchadas
-  const orgsWithUnmatched = await prisma.bankTransaction.groupBy({
-    by: ['orgId'],
-    where: {
-      matchStatus: {
-        in: ['UNMATCHED', 'SUGGESTED'],
-      },
-    },
-    _count: {
-      id: true,
-    },
+export async function processMatchEngine(orgId?: string): Promise<void> {
+  const where = orgId ? { id: orgId } : {}
+  
+  const organizations = await prisma.organization.findMany({
+    where,
   })
 
-  let totalGenerated = 0
-  let totalAutoMatched = 0
-  let totalOrgsProcessed = 0
-  let totalErrors = 0
-
-  for (const org of orgsWithUnmatched) {
+  for (const org of organizations) {
     try {
-      const result = await generateMatchSuggestions(org.orgId, {
-        minScore: 60, // Apenas matches com score >= 60
-      })
-
-      totalGenerated += result.generated
-      totalAutoMatched += result.autoMatched
-
-      if (result.generated > 0 || result.autoMatched > 0) {
-        logger.info('Match engine completed for org', {
-          orgId: org.orgId,
-          generated: result.generated,
-          autoMatched: result.autoMatched,
-          unmatchedCount: org._count.id,
-        })
-      }
-
-      totalOrgsProcessed++
+      await generateMatchSuggestions(org.id)
+      logger.info('Match engine completed', { orgId: org.id })
     } catch (error: any) {
-      logger.error('Error running match engine for org', {
-        orgId: org.orgId,
+      logger.error('Match engine failed', {
+        orgId: org.id,
         error: error.message,
       })
-      totalErrors++
     }
   }
-
-  logger.info('Match engine worker completed', {
-    totalGenerated,
-    totalAutoMatched,
-    totalOrgsProcessed,
-    totalErrors,
-  })
 }
-
-// Se executado diretamente (para testes)
-if (require.main === module) {
-  processMatchEngine()
-    .then(() => {
-      logger.info('Match engine worker finished')
-      process.exit(0)
-    })
-    .catch(error => {
-      logger.error('Match engine worker failed', { error: error.message })
-      process.exit(1)
-    })
-}
-
-

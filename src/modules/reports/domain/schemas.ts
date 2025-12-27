@@ -1,1 +1,5 @@
+/**
+ * Reports Domain Schemas
+ */
 
+export {}
