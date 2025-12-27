@@ -180,10 +180,11 @@ export const automationRepo = {
   ) {
     if (items.length === 0) return { count: 0 }
     return prisma.notification.createMany({
-      data: items.map((i) => ({ orgId, ...i })),
+      data: items.map((i: any) => ({ orgId, ...i })),
     })
   },
 }
+
 
 
 

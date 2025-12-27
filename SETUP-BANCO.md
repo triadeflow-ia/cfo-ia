@@ -117,3 +117,5 @@ Deve abrir o Prisma Studio mostrando todas as tabelas criadas.
 **Use Supabase** - É gratuito, não precisa instalar nada, e funciona perfeitamente para desenvolvimento e até produção inicial.
 
 
+
+

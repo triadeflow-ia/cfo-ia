@@ -202,3 +202,5 @@ Permite marcar categorias como "custo direto" para cálculo de margem mais preci
 
 
 
+
+

@@ -47,3 +47,5 @@ Agora você pode testar todas as funcionalidades!
 Veja `COMO-TESTAR.md` para guia completo de testes.
 
 
+
+

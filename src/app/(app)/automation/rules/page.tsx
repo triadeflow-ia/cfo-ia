@@ -1,6 +1,4 @@
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
 import { requireAuth } from '@/shared/auth/context'
 import { automationService } from '@/modules/automation'
 
@@ -10,53 +8,46 @@ export default async function RulesPage() {
     return <div>Unauthorized</div>
   }
 
-  const rules = await automationService.listRules(auth.context.orgId)
+  const rules = await automationService.listRules(auth.context.orgId, false)
 
   return (
     <DashboardLayout>
       <div className="flex flex-1 flex-col gap-4 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Regras de Categorização</h1>
-            <p className="text-muted-foreground">
-              Regras automáticas para categorizar transações.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/automation/rules/new">Nova regra</Link>
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Regras de Categorização</h1>
+          <p className="text-muted-foreground">
+            Regras automáticas para categorizar transações
+          </p>
         </div>
 
         <div className="rounded-lg border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
-              <tr className="text-left">
-                <th className="p-3">Nome</th>
-                <th className="p-3">Tipo</th>
-                <th className="p-3">Padrão</th>
-                <th className="p-3">Prioridade</th>
-                <th className="p-3">Status</th>
+              <tr>
+                <th className="p-3 text-left">Nome</th>
+                <th className="p-3 text-left">Tipo</th>
+                <th className="p-3 text-left">Prioridade</th>
+                <th className="p-3 text-left">Categoria</th>
+                <th className="p-3 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
-              {rules.map((rule: any) => (
-                <tr key={rule.id} className="border-t hover:bg-muted/20">
+              {rules.map((rule) => (
+                <tr key={rule.id} className="border-t">
                   <td className="p-3 font-medium">{rule.name}</td>
                   <td className="p-3">{rule.matchType}</td>
-                  <td className="p-3">
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{rule.pattern}</code>
-                  </td>
                   <td className="p-3">{rule.priority}</td>
+                  <td className="p-3">{rule.categoryId}</td>
                   <td className="p-3">
-                    {rule.isActive ? (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
-                        Ativa
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
-                        Inativa
-                      </span>
-                    )}
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs ${
+                        rule.isActive
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {rule.isActive ? 'Ativa' : 'Inativa'}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -74,6 +65,3 @@ export default async function RulesPage() {
     </DashboardLayout>
   )
 }
-
-
-

@@ -60,3 +60,5 @@ Não precisa modificar nada, apenas copiar e colar!
 O MCP server do Supabase é para uso no Cursor/IDE (ferramentas MCP), mas o **Prisma precisa da connection string tradicional** do PostgreSQL para funcionar. Por isso precisamos copiar do dashboard mesmo.
 
 
+
+

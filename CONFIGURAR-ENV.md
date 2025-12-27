@@ -60,3 +60,5 @@ NODE_ENV="development"
 **Depois de configurar, rode**: `npm run db:migrate`
 
 
+
+

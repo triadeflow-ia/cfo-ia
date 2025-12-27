@@ -81,12 +81,14 @@ A documentação completa está na pasta `/docs`:
 ## 📋 Roadmap
 
 - ✅ **Marco 0** - Fundação
-- ⏳ **Marco 1** - Ledger MVP
-- ⏳ **Marco 2** - Automação
-- ⏳ **Marco 3** - Relatórios
-- ⏳ **Marco 4** - Métricas do negócio
-- ⏳ **Marco 5** - WhatsApp + Assistente
-- ⏳ **Marco 6** - Integrações
+- ✅ **Marco 1** - Ledger MVP
+- ✅ **Marco 2** - Automação
+- ✅ **Marco 3** - Relatórios
+- ✅ **Marco 4** - Métricas do negócio
+- 🔄 **Marco 5** - WhatsApp + Assistente (parcial - ver pendências)
+- ✅ **Marco 6** - Integrações
+
+> **Nota**: Consulte `O-QUE-FALTA-FINALIZAR.md` para ver pendências e próximos passos
 
 ## 🧪 Scripts Disponíveis
 
@@ -129,6 +131,7 @@ Cada módulo é independente e expõe sua interface através de um facade.
 ## 🤝 Contribuindo
 
 [Adicionar guidelines quando necessário]
+
 
 
 

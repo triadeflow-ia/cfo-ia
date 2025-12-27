@@ -63,7 +63,7 @@ export const recurrenceService = {
             costCenterId: r.costCenterId,
             clientId: r.clientId,
             vendorId: r.vendorId,
-            source: 'recurrence',
+            source: 'api',
           },
         })
 
@@ -83,7 +83,7 @@ export const recurrenceService = {
             },
           },
           metadata: {
-            source: 'recurrence',
+            source: 'api',
             recurrenceId: r.id,
             recurrenceName: r.name,
           },
@@ -102,6 +102,7 @@ export const recurrenceService = {
     return { due: due.length, created: createdCount }
   },
 }
+
 
 
 

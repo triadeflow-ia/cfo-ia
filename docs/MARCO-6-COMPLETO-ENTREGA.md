@@ -276,3 +276,5 @@ Todas as funcionalidades principais foram implementadas:
 Sistema pronto para testar com adapters mock e preparado para integrar providers reais.
 
 
+
+

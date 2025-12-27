@@ -39,3 +39,5 @@ npm run db:migrate
 Se funcionar, você verá as migrations sendo aplicadas! 🎉
 
 
+
+

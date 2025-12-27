@@ -1,6 +1,4 @@
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
 import { requireAuth } from '@/shared/auth/context'
 import { automationService } from '@/modules/automation'
 
@@ -15,58 +13,41 @@ export default async function RecurrencesPage() {
   return (
     <DashboardLayout>
       <div className="flex flex-1 flex-col gap-4 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Recorrências</h1>
-            <p className="text-muted-foreground">
-              Despesas e receitas recorrentes.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/automation/recurrences/new">Nova recorrência</Link>
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Recorrências</h1>
+          <p className="text-muted-foreground">
+            Despesas e receitas recorrentes
+          </p>
         </div>
 
         <div className="rounded-lg border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
-              <tr className="text-left">
-                <th className="p-3">Nome</th>
-                <th className="p-3">Frequência</th>
-                <th className="p-3">Próxima execução</th>
-                <th className="p-3">Valor</th>
-                <th className="p-3">Status</th>
+              <tr>
+                <th className="p-3 text-left">Nome</th>
+                <th className="p-3 text-left">Tipo</th>
+                <th className="p-3 text-left">Valor</th>
+                <th className="p-3 text-left">Próxima execução</th>
+                <th className="p-3 text-left">Frequência</th>
               </tr>
             </thead>
             <tbody>
-              {recurrences.map((rec: any) => (
-                <tr key={rec.id} className="border-t hover:bg-muted/20">
+              {recurrences.map((rec) => (
+                <tr key={rec.id} className="border-t">
                   <td className="p-3 font-medium">{rec.name}</td>
+                  <td className="p-3">{rec.type}</td>
                   <td className="p-3">
-                    {rec.frequency === 'DAILY' && 'Diária'}
-                    {rec.frequency === 'WEEKLY' && 'Semanal'}
-                    {rec.frequency === 'MONTHLY' && 'Mensal'}
-                  </td>
-                  <td className="p-3">
-                    {new Date(rec.nextRunAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="p-3 font-medium">
-                    {(rec.amountCents / 100).toLocaleString('pt-BR', {
+                    {((rec.amountCents || 0) / 100).toLocaleString('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
                     })}
                   </td>
                   <td className="p-3">
-                    {rec.isActive ? (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
-                        Ativa
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
-                        Inativa
-                      </span>
-                    )}
+                    {rec.nextRunAt
+                      ? new Date(rec.nextRunAt).toLocaleDateString('pt-BR')
+                      : '-'}
                   </td>
+                  <td className="p-3">{rec.frequency}</td>
                 </tr>
               ))}
               {recurrences.length === 0 && (
@@ -83,6 +64,3 @@ export default async function RecurrencesPage() {
     </DashboardLayout>
   )
 }
-
-
-

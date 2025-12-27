@@ -37,7 +37,7 @@ export default async function WhatsappConversationsPage({
               </tr>
             </thead>
             <tbody>
-              {conversations.map((conv) => {
+              {conversations.map((conv: any) => {
                 const lastMessage = conv.messages[0]
                 return (
                   <tr key={conv.id} className="border-t">
@@ -88,6 +88,7 @@ export default async function WhatsappConversationsPage({
     </DashboardLayout>
   )
 }
+
 
 
 

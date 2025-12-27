@@ -3,9 +3,8 @@
  * Gets user session and organization ID
  */
 
-import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
-import { authOptions } from './config'
+import { auth } from './config'
 import { prisma } from '@/shared/db'
 
 export interface AuthContext {
@@ -22,7 +21,7 @@ export async function requireAuth(): Promise<
   | { ok: true; context: AuthContext }
   | { ok: false; response: NextResponse }
 > {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.user?.id) {
     return {
@@ -56,6 +55,7 @@ export async function requireAuth(): Promise<
     },
   }
 }
+
 
 
 

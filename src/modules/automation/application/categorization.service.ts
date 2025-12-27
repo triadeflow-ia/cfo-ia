@@ -73,7 +73,7 @@ export const categorizationService = {
         new: patch,
       },
       metadata: {
-        source: 'automation',
+        source: 'api',
         ruleId: rule.id,
         ruleName: rule.name,
       },
@@ -98,6 +98,7 @@ export const categorizationService = {
     return { scanned: items.length, applied }
   },
 }
+
 
 
 

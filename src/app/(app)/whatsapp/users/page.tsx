@@ -49,7 +49,7 @@ export default async function WhatsappUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {links.map((link) => (
+              {links.map((link: any) => (
                 <tr key={link.id} className="border-t">
                   <td className="p-3 font-medium">
                     {link.user.name || link.user.email || 'Usuário sem nome'}
@@ -99,6 +99,7 @@ export default async function WhatsappUsersPage() {
     </DashboardLayout>
   )
 }
+
 
 
 

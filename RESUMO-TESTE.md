@@ -55,3 +55,5 @@ Veja o guia completo: **`COMO-TESTAR.md`**
 **Status Atual**: ✅ Código pronto, falta apenas configurar o banco e testar!
 
 
+
+

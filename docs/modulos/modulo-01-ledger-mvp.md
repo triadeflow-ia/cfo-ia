@@ -170,3 +170,5 @@ MVP simples. Futuro: mostrar preview antes de importar, permitir escolher o que 
 
 
 
+
+

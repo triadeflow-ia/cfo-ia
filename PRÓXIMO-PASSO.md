@@ -50,3 +50,5 @@ Ou pode usar a direta (porta 5432):
 Depois disso, tudo estará funcionando! 🚀
 
 
+
+

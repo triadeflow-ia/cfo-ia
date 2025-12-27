@@ -55,3 +55,5 @@ console.log('✅ Arquivo .env atualizado com sucesso!')
 console.log('\n🚀 Agora rode: npm run db:migrate\n')
 
 
+
+

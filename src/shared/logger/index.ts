@@ -1,1 +1,24 @@
+/**
+ * Logger utility - Structured logging
+ */
 
+interface LogContext {
+  [key: string]: any
+}
+
+export const logger = {
+  info(message: string, context?: LogContext) {
+    console.log(`[INFO] ${message}`, context || '')
+  },
+  error(message: string, error?: Error | unknown, context?: LogContext) {
+    console.error(`[ERROR] ${message}`, error, context || '')
+  },
+  warn(message: string, context?: LogContext) {
+    console.warn(`[WARN] ${message}`, context || '')
+  },
+  debug(message: string, context?: LogContext) {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(`[DEBUG] ${message}`, context || '')
+    }
+  },
+}

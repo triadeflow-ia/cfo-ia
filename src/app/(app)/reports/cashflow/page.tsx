@@ -141,7 +141,7 @@ export default async function CashflowPage({
               </tr>
             </thead>
             <tbody>
-              {data.days.map((day, idx) => {
+              {data.days.map((day: any, idx: number) => {
                 const isToday = day.date.toDateString() === new Date().toDateString()
                 const isFuture = day.date > new Date()
                 return (
@@ -199,6 +199,7 @@ export default async function CashflowPage({
     </DashboardLayout>
   )
 }
+
 
 
 
