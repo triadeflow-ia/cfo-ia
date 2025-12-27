@@ -12,11 +12,9 @@ import { logger } from '@/shared/logger'
  * Cria AI Provider baseado em configuração da org
  */
 export async function createAIProvider(orgId: string): Promise<AIProvider> {
-  const settings = await prisma.whatsappSettings.findUnique({
-    where: { orgId },
-  })
-
-  const useLLM = settings?.llmEnabled && settings?.provider === 'llm'
+  // TODO: Implement WhatsApp settings model in Prisma schema
+  // For now, use environment variable to determine provider
+  const useLLM = process.env.LLM_ENABLED === 'true' && process.env.LLM_PROVIDER === 'llm'
   
   if (useLLM && process.env.LLM_API_KEY) {
     try {
@@ -53,6 +51,8 @@ export async function decideWithFallback(
     return await fallback.decide(message, context)
   }
 }
+
+
 
 
 

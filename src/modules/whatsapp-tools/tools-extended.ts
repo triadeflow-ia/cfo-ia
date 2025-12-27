@@ -70,15 +70,15 @@ export async function cashflowSummary(orgId: string, projectionDays: number = 30
  * Overview de crescimento (resumido)
  */
 export async function growthOverview(orgId: string) {
-  const data = await growthService.getOverview(orgId)
+  const data = await growthService.getOverview(orgId, {})
   
   return {
     activeClients: data.activeClients,
-    mrrCents: data.mrrCents,
-    arrCents: data.arrCents,
-    churnRate: data.churnRate,
-    netProfitCents: data.netProfitCents,
-    momTrend: data.momTrend,
+    mrrCents: (data.mrr || 0) * 100, // Convert to cents
+    arrCents: (data.arr || 0) * 100, // Convert to cents
+    churnRate: data.churnRate || 0,
+    netProfitCents: 0, // TODO: Calculate from DRE
+    momTrend: 0, // TODO: Calculate month-over-month trend
   }
 }
 
@@ -87,6 +87,8 @@ export const extendedTools = {
   cashflowSummary,
   growthOverview,
 }
+
+
 
 
 

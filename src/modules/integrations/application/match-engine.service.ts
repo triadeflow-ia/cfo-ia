@@ -2,6 +2,7 @@
  * Match Engine Service - Reconcilia BankTransactions com Transactions
  */
 
+import { prisma } from '@/shared/db'
 import { integrationRepo } from '../infra/repositories/integration.repo'
 import { ledgerRepo } from '@/modules/ledger/infra/ledger.repo'
 import { logger } from '@/shared/logger'
@@ -102,7 +103,7 @@ export async function findMatchesForBankTransaction(
   // Calcular scores
   const matches: Array<{ transactionId: string; score: number; reason: any }> = []
 
-  for (const tx of transactions.items) {
+  for (const tx of transactions) {
       // Ignorar se já está matchado (tem externalId de outra integração)
       // Mas permitir matches com transações manuais
 

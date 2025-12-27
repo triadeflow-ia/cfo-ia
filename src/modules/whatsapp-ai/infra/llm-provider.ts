@@ -132,10 +132,10 @@ REGRAS CRÍTICAS:
     max_tokens: 500,
   }
 
-  const url = LLM_API_URL || 
+  const url = LLM_API_URL ||
     (LLM_PROVIDER === 'openai' ? 'https://api.openai.com/v1/chat/completions' :
      LLM_PROVIDER === 'anthropic' ? 'https://api.anthropic.com/v1/messages' :
-     LLM_API_URL)
+     (() => { throw new Error('LLM_API_URL or LLM_PROVIDER must be configured') })())
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -224,6 +224,8 @@ export class LLMProvider implements AIProvider {
     }
   }
 }
+
+
 
 
 

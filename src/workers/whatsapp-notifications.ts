@@ -15,13 +15,15 @@ export async function processProactiveNotifications() {
 
   const orgs = await prisma.organization.findMany({
     where: {
-      whatsappSettings: {
-        isNot: null, // Apenas orgs com settings configurados
-      },
+      // TODO: Implement WhatsApp settings model in Prisma schema
+      // whatsappSettings: {
+      //   isNot: null, // Apenas orgs com settings configurados
+      // },
     },
-    include: {
-      whatsappSettings: true,
-    },
+    // TODO: Implement WhatsApp settings model in Prisma schema
+    // include: {
+    //   whatsappSettings: true,
+    // },
   })
 
   let totalSent = 0
@@ -72,6 +74,8 @@ if (require.main === module) {
       process.exit(1)
     })
 }
+
+
 
 
 

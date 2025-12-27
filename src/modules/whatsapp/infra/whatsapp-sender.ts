@@ -72,8 +72,7 @@ export async function sendWhatsAppMessage(options: SendMessageOptions): Promise<
           conversationId,
           direction: 'OUT',
           messageId,
-          text,
-          rawPayload: data,
+          content: text,
         })
       } catch (error: any) {
         // Ignora erro de duplicata (idempotência)
@@ -113,6 +112,8 @@ export async function sendWhatsAppMessage(options: SendMessageOptions): Promise<
 export function hashMessageContent(text: string): string {
   return crypto.createHash('sha256').update(text).digest('hex').substring(0, 16)
 }
+
+
 
 
 

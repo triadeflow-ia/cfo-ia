@@ -30,8 +30,8 @@ export async function createAuditLog(params: CreateAuditLogParams): Promise<void
         action: params.action,
         entityType: params.entityType,
         entityId: params.entityId,
-        changes: params.changes || null,
-        metadata: params.metadata || null,
+        changes: params.changes ? (params.changes as any) : null,
+        metadata: params.metadata ? (params.metadata as any) : null,
         createdByUserId: params.userId,
         updatedByUserId: params.userId,
       },
@@ -45,6 +45,8 @@ export async function createAuditLog(params: CreateAuditLogParams): Promise<void
     })
   }
 }
+
+
 
 
 

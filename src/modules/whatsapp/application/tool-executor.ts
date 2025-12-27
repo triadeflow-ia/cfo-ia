@@ -5,10 +5,8 @@
 import { tools } from '@/modules/whatsapp-tools'
 import { extendedTools } from '@/modules/whatsapp-tools/tools-extended'
 import { logger } from '@/shared/logger'
-import { audit } from '@/shared/utils/audit'
+import { createAuditLog } from '@/shared/utils/audit'
 import { prisma } from '@/shared/db'
-import { logger } from '@/shared/logger'
-import { audit } from '@/shared/utils/audit'
 
 interface ExecuteToolOptions {
   orgId: string
@@ -54,7 +52,7 @@ async function checkPermission(orgId: string, userId: string, toolName: string):
     include: {
       role: {
         include: {
-          permissions: {
+          rolePermissions: {
             include: {
               permission: true,
             },
@@ -70,7 +68,7 @@ async function checkPermission(orgId: string, userId: string, toolName: string):
   if (orgUser.role?.slug === 'admin') return true
 
   // Verificar permissões do role
-  const userPerms = orgUser.role?.permissions.map(p => p.permission.slug) || []
+  const userPerms = orgUser.role?.rolePermissions.map(p => p.permission.slug) || []
   
   // Se tem alguma das permissões requeridas
   return requiredPerms.some(perm => userPerms.includes(perm))
@@ -121,11 +119,11 @@ export async function executeTool(options: ExecuteToolOptions): Promise<any> {
     }
 
     // Audit log
-    await audit.log({
-      orgId,
+    await createAuditLog({
+      organizationId: orgId,
       userId,
-      action: `WHATSAPP_TOOL_${toolName.toUpperCase()}`,
-      entity: 'ToolExecution',
+      action: 'create',
+      entityType: 'ToolExecution',
       entityId: conversationId,
       metadata: {
         toolName,
@@ -145,11 +143,11 @@ export async function executeTool(options: ExecuteToolOptions): Promise<any> {
     return result
   } catch (error: any) {
     // Audit log de erro
-    await audit.log({
-      orgId,
+    await createAuditLog({
+      organizationId: orgId,
       userId,
-      action: `WHATSAPP_TOOL_${toolName.toUpperCase()}_ERROR`,
-      entity: 'ToolExecution',
+      action: 'create',
+      entityType: 'ToolExecution',
       entityId: conversationId,
       metadata: {
         toolName,
