@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import * as dotenv from 'dotenv'
+import dotenv from 'dotenv'
 import { hash } from 'bcryptjs'
 
 // Load environment variables
